@@ -43,7 +43,10 @@ describe('Platform-detection', function () {
 
   it('Defaults to ARMv6 for 32-bit', function () {
     process.env.npm_config_arch = 'arm';
+    const armVersion = process.config.variables.arm_version;
+    delete process.config.variables.arm_version;
     assert.strictEqual('armv6', platform().split('-')[1]);
+    process.config.variables.arm_version = armVersion;
     delete process.env.npm_config_arch;
   });
 
@@ -51,5 +54,13 @@ describe('Platform-detection', function () {
     process.env.npm_config_arch = 'arm64';
     assert.strictEqual('arm64v8', platform().split('-')[1]);
     delete process.env.npm_config_arch;
+  });
+
+  it('Can ensure version ARMv7 if electron version is present', function () {
+    process.env.npm_config_arch = 'arm';
+    process.versions.electron = 'test';
+    assert.strictEqual('armv7', platform().split('-')[1]);
+    delete process.env.npm_config_arch;
+    delete process.versions.electron;
   });
 });

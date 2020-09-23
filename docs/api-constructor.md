@@ -2,27 +2,43 @@
 
 ## Sharp
 
+Constructor factory to create an instance of `sharp`, to which further methods are chained.
+
+JPEG, PNG, WebP or TIFF format image data can be streamed out from this object.
+When using Stream based output, derived attributes are available from the `info` event.
+
+Non-critical problems encountered during processing are emitted as `warning` events.
+
+Implements the [stream.Duplex][1] class.
+
 ### Parameters
 
--   `input` **([Buffer][1] \| [String][2])?** if present, can be
+-   `input` **([Buffer][2] \| [string][3])?** if present, can be
      a Buffer containing JPEG, PNG, WebP, GIF, SVG, TIFF or raw pixel image data, or
      a String containing the filesystem path to an JPEG, PNG, WebP, GIF, SVG or TIFF image file.
      JPEG, PNG, WebP, GIF, SVG, TIFF or raw pixel image data can be streamed into the object when not present.
--   `options` **[Object][3]?** if present, is an Object with optional attributes.
-    -   `options.failOnError` **[Boolean][4]** by default halt processing and raise an error when loading invalid images.
+-   `options` **[Object][4]?** if present, is an Object with optional attributes.
+    -   `options.failOnError` **[boolean][5]** by default halt processing and raise an error when loading invalid images.
          Set this flag to `false` if you'd rather apply a "best effort" to decode images, even if the data is corrupt or invalid. (optional, default `true`)
-    -   `options.density` **[Number][5]** number representing the DPI for vector images. (optional, default `72`)
-    -   `options.pages` **[Number][5]** number of pages to extract for multi-page input (GIF, TIFF, PDF), use -1 for all pages. (optional, default `1`)
-    -   `options.page` **[Number][5]** page number to start extracting from for multi-page input (GIF, TIFF, PDF), zero based. (optional, default `0`)
-    -   `options.raw` **[Object][3]?** describes raw pixel input image data. See `raw()` for pixel ordering.
-        -   `options.raw.width` **[Number][5]?** 
-        -   `options.raw.height` **[Number][5]?** 
-        -   `options.raw.channels` **[Number][5]?** 1-4
-    -   `options.create` **[Object][3]?** describes a new image to be created.
-        -   `options.create.width` **[Number][5]?** 
-        -   `options.create.height` **[Number][5]?** 
-        -   `options.create.channels` **[Number][5]?** 3-4
-        -   `options.create.background` **([String][2] \| [Object][3])?** parsed by the [color][6] module to extract values for red, green, blue and alpha.
+    -   `options.limitInputPixels` **([number][6] \| [boolean][5])** Do not process input images where the number of pixels
+         (width x height) exceeds this limit. Assumes image dimensions contained in the input metadata can be trusted.
+         An integral Number of pixels, zero or false to remove limit, true to use default limit of 268402689 (0x3FFF x 0x3FFF). (optional, default `268402689`)
+    -   `options.sequentialRead` **[boolean][5]** Set this to `true` to use sequential rather than random access where possible.
+         This can reduce memory usage and might improve performance on some systems. (optional, default `false`)
+    -   `options.density` **[number][6]** number representing the DPI for vector images in the range 1 to 100000. (optional, default `72`)
+    -   `options.pages` **[number][6]** number of pages to extract for multi-page input (GIF, TIFF, PDF), use -1 for all pages. (optional, default `1`)
+    -   `options.page` **[number][6]** page number to start extracting from for multi-page input (GIF, TIFF, PDF), zero based. (optional, default `0`)
+    -   `options.level` **[number][6]** level to extract from a multi-level input (OpenSlide), zero based. (optional, default `0`)
+    -   `options.animated` **[boolean][5]** Set to `true` to read all frames/pages of an animated image (equivalent of setting `pages` to `-1`). (optional, default `false`)
+    -   `options.raw` **[Object][4]?** describes raw pixel input image data. See `raw()` for pixel ordering.
+        -   `options.raw.width` **[number][6]?** 
+        -   `options.raw.height` **[number][6]?** 
+        -   `options.raw.channels` **[number][6]?** 1-4
+    -   `options.create` **[Object][4]?** describes a new image to be created.
+        -   `options.create.width` **[number][6]?** 
+        -   `options.create.height` **[number][6]?** 
+        -   `options.create.channels` **[number][6]?** 3-4
+        -   `options.create.background` **([string][3] \| [Object][4])?** parsed by the [color][7] module to extract values for red, green, blue and alpha.
 
 ### Examples
 
@@ -63,59 +79,97 @@ sharp({
 .then( ... );
 ```
 
--   Throws **[Error][7]** Invalid parameters
-
-Returns **[Sharp][8]** 
-
-### format
-
-An Object containing nested boolean values representing the available input and output formats/methods.
-
-#### Examples
-
 ```javascript
-console.log(sharp.format);
+// Convert an animated GIF to an animated WebP
+await sharp('in.gif', { animated: true }).toFile('out.webp');
 ```
 
-Returns **[Object][3]** 
+-   Throws **[Error][8]** Invalid parameters
 
-### versions
+Returns **[Sharp][9]** 
 
-An Object containing the version numbers of libvips and its dependencies.
+## clone
 
-#### Examples
-
-```javascript
-console.log(sharp.versions);
-```
-
-## queue
-
-An EventEmitter that emits a `change` event when a task is either:
-
--   queued, waiting for _libuv_ to provide a worker thread
--   complete
+Take a "snapshot" of the Sharp instance, returning a new instance.
+Cloned instances inherit the input of their parent instance.
+This allows multiple output Streams and therefore multiple processing pipelines to share a single input Stream.
 
 ### Examples
 
 ```javascript
-sharp.queue.on('change', function(queueLength) {
-  console.log('Queue contains ' + queueLength + ' task(s)');
-});
+const pipeline = sharp().rotate();
+pipeline.clone().resize(800, 600).pipe(firstWritableStream);
+pipeline.clone().extract({ left: 20, top: 20, width: 100, height: 100 }).pipe(secondWritableStream);
+readableStream.pipe(pipeline);
+// firstWritableStream receives auto-rotated, resized readableStream
+// secondWritableStream receives auto-rotated, extracted region of readableStream
 ```
 
-[1]: https://nodejs.org/api/buffer.html
+```javascript
+// Create a pipeline that will download an image, resize it and format it to different files
+// Using Promises to know when the pipeline is complete
+const fs = require("fs");
+const got = require("got");
+const sharpStream = sharp({
+  failOnError: false
+});
 
-[2]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+const promises = [];
 
-[3]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+promises.push(
+  sharpStream
+    .clone()
+    .jpeg({ quality: 100 })
+    .toFile("originalFile.jpg")
+);
 
-[4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+promises.push(
+  sharpStream
+    .clone()
+    .resize({ width: 500 })
+    .jpeg({ quality: 80 })
+    .toFile("optimized-500.jpg")
+);
 
-[5]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+promises.push(
+  sharpStream
+    .clone()
+    .resize({ width: 500 })
+    .webp({ quality: 80 })
+    .toFile("optimized-500.webp")
+);
 
-[6]: https://www.npmjs.org/package/color
+// https://github.com/sindresorhus/got#gotstreamurl-options
+got.stream("https://www.example.com/some-file.jpg").pipe(sharpStream);
 
-[7]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error
+Promise.all(promises)
+  .then(res => { console.log("Done!", res); })
+  .catch(err => {
+    console.error("Error processing files, let's clean it up", err);
+    try {
+      fs.unlinkSync("originalFile.jpg");
+      fs.unlinkSync("optimized-500.jpg");
+      fs.unlinkSync("optimized-500.webp");
+    } catch (e) {}
+  });
+```
 
-[8]: #sharp
+Returns **[Sharp][9]** 
+
+[1]: http://nodejs.org/api/stream.html#stream_class_stream_duplex
+
+[2]: https://nodejs.org/api/buffer.html
+
+[3]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String
+
+[4]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object
+
+[5]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean
+
+[6]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number
+
+[7]: https://www.npmjs.org/package/color
+
+[8]: https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Error
+
+[9]: #sharp

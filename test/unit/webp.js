@@ -1,5 +1,6 @@
 'use strict';
 
+const fs = require('fs');
 const assert = require('assert');
 
 const sharp = require('../../');
@@ -124,5 +125,88 @@ describe('WebP', function () {
     assert.throws(() => {
       sharp().webp({ reductionEffort: -1 });
     });
+  });
+
+  it('invalid pageHeight throws', () => {
+    assert.throws(() => {
+      sharp().webp({ pageHeight: 0 });
+    });
+  });
+
+  it('invalid loop throws', () => {
+    assert.throws(() => {
+      sharp().webp({ loop: -1 });
+    });
+
+    assert.throws(() => {
+      sharp().webp({ loop: 65536 });
+    });
+  });
+
+  it('invalid delay throws', () => {
+    assert.throws(() => {
+      sharp().webp({ delay: [-1] });
+    });
+
+    assert.throws(() => {
+      sharp().webp({ delay: [65536] });
+    });
+  });
+
+  it('should double the number of frames with default delay', async () => {
+    const original = await sharp(fixtures.inputWebPAnimated, { pages: -1 }).metadata();
+    const updated = await sharp(fixtures.inputWebPAnimated, { pages: -1 })
+      .webp({ pageHeight: original.pageHeight / 2 })
+      .toBuffer()
+      .then(data => sharp(data, { pages: -1 }).metadata());
+
+    assert.strictEqual(updated.pages, original.pages * 2);
+    assert.strictEqual(updated.pageHeight, original.pageHeight / 2);
+    assert.deepStrictEqual(updated.delay, [...original.delay, ...Array(9).fill(120)]);
+  });
+
+  it('should limit animation loop', async () => {
+    const updated = await sharp(fixtures.inputWebPAnimated, { pages: -1 })
+      .webp({ loop: 3 })
+      .toBuffer()
+      .then(data => sharp(data, { pages: -1 }).metadata());
+
+    assert.strictEqual(updated.loop, 3);
+  });
+
+  it('should change delay between frames', async () => {
+    const original = await sharp(fixtures.inputWebPAnimated, { pages: -1 }).metadata();
+
+    const expectedDelay = [...Array(original.pages).fill(40)];
+    const updated = await sharp(fixtures.inputWebPAnimated, { pages: -1 })
+      .webp({ delay: expectedDelay })
+      .toBuffer()
+      .then(data => sharp(data, { pages: -1 }).metadata());
+
+    assert.deepStrictEqual(updated.delay, expectedDelay);
+  });
+
+  it('should work with streams when only animated is set', function (done) {
+    fs.createReadStream(fixtures.inputWebPAnimated)
+      .pipe(sharp({ animated: true }))
+      .webp({ lossless: true })
+      .toBuffer(function (err, data, info) {
+        if (err) throw err;
+        assert.strictEqual(true, data.length > 0);
+        assert.strictEqual('webp', info.format);
+        fixtures.assertSimilar(fixtures.inputWebPAnimated, data, done);
+      });
+  });
+
+  it('should work with streams when only pages is set', function (done) {
+    fs.createReadStream(fixtures.inputWebPAnimated)
+      .pipe(sharp({ pages: -1 }))
+      .webp({ lossless: true })
+      .toBuffer(function (err, data, info) {
+        if (err) throw err;
+        assert.strictEqual(true, data.length > 0);
+        assert.strictEqual('webp', info.format);
+        fixtures.assertSimilar(fixtures.inputWebPAnimated, data, done);
+      });
   });
 });

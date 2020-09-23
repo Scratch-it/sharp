@@ -42,11 +42,6 @@ You deserve to add your details to the [list of contributors](https://github.com
 
 Any change that modifies the existing public API should be added to the relevant work-in-progress branch for inclusion in the next major release.
 
-| Release | WIP branch |
-| ------: | :--------- |
-| v0.24.0 | wit        |
-| v0.25.0 | yield      |
-
 Please squash your changes into a single commit using a command like `git rebase -i upstream/<wip-branch>`.
 
 ### Add a new public method
@@ -71,7 +66,7 @@ The public API is documented with [JSDoc](http://usejsdoc.org/) annotated commen
 
 These can be converted to Markdown by running:
 ```sh
-npm run docs
+npm run docs-build
 ```
 
 Please include documentation updates in any Pull Request that modifies the public API.

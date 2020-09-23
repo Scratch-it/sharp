@@ -116,7 +116,7 @@ describe('TIFF', function () {
     sharp(fixtures.inputTiff8BitDepth)
       .toColourspace('b-w') // can only squash 1 band uchar images
       .tiff({
-        squash: false,
+        bitdepth: 8,
         compression: 'none',
         predictor: 'none'
       })
@@ -133,7 +133,7 @@ describe('TIFF', function () {
     sharp(fixtures.inputTiff8BitDepth)
       .toColourspace('b-w') // can only squash 1 band uchar images
       .tiff({
-        squash: true,
+        bitdepth: 1,
         compression: 'none',
         predictor: 'none'
       })
@@ -145,10 +145,10 @@ describe('TIFF', function () {
       });
   });
 
-  it('Invalid TIFF squash value throws error', function () {
+  it('Invalid TIFF bitdepth value throws error', function () {
     assert.throws(function () {
-      sharp().tiff({ squash: 'true' });
-    });
+      sharp().tiff({ bitdepth: 3 });
+    }, /Error: Expected 1, 2, 4 or 8 for bitdepth but received 3 of type number/);
   });
 
   it('TIFF setting xres and yres on file', () =>
@@ -161,9 +161,7 @@ describe('TIFF', function () {
       .then(() => sharp(fixtures.outputTiff)
         .metadata()
         .then(({ density }) => {
-          assert.strictEqual(true,
-            density === 2540 || // libvips <= 8.8.2
-            density === 25400); // libvips >= 8.8.3
+          assert.strictEqual(25400, density);
           return promisify(rimraf)(fixtures.outputTiff);
         })
       )
@@ -179,9 +177,7 @@ describe('TIFF', function () {
       .then(data => sharp(data)
         .metadata()
         .then(({ density }) => {
-          assert.strictEqual(true,
-            density === 2540 || // libvips <= 8.8.2
-            density === 25400); // libvips >= 8.8.3
+          assert.strictEqual(25400, density);
         })
       )
   );
@@ -208,17 +204,54 @@ describe('TIFF', function () {
       .toFile(fixtures.outputTiff, (err, info) => {
         if (err) throw err;
         assert.strictEqual('tiff', info.format);
+        assert.strictEqual(3, info.channels);
         assert(info.size < startSize);
         rimraf(fixtures.outputTiff, done);
       });
   });
+
+  it('TIFF LZW RGBA toFile', () =>
+    sharp({
+      create: {
+        width: 1,
+        height: 1,
+        channels: 4,
+        background: 'red'
+      }
+    })
+      .tiff({
+        compression: 'lzw'
+      })
+      .toFile(fixtures.outputTiff)
+      .then(info => {
+        assert.strictEqual(4, info.channels);
+      })
+  );
+
+  it('TIFF LZW RGBA toBuffer', () =>
+    sharp({
+      create: {
+        width: 1,
+        height: 1,
+        channels: 4,
+        background: 'red'
+      }
+    })
+      .tiff({
+        compression: 'lzw'
+      })
+      .toBuffer({ resolveWithObject: true })
+      .then(({ info }) => {
+        assert.strictEqual(4, info.channels);
+      })
+  );
 
   it('TIFF ccittfax4 compression shrinks b-w test file', function (done) {
     const startSize = fs.statSync(fixtures.inputTiff).size;
     sharp(fixtures.inputTiff)
       .toColourspace('b-w')
       .tiff({
-        squash: true,
+        bitdepth: 1,
         compression: 'ccittfax4'
       })
       .toFile(fixtures.outputTiff, (err, info) => {

@@ -1,44 +1,46 @@
 # Performance
 
-### Test environment
+A test to benchmark the performance of this module relative to alternatives.
 
-* AWS EC2 eu-west-1 [c5.large](https://aws.amazon.com/ec2/instance-types/c5/) (2x Xeon Platinum 8124M CPU @ 3.00GHz)
-* Ubuntu 18.04 (hvm-ssd/ubuntu-bionic-18.04-amd64-server-20180912 ami-00035f41c82244dab)
-* Node.js v12.10.0
+## The contenders
 
-### The contenders
-
-* [jimp](https://www.npmjs.com/package/jimp) v0.8.4 - Image processing in pure JavaScript. Provides bicubic interpolation.
-* [mapnik](https://www.npmjs.org/package/mapnik) v4.3.1 - Whilst primarily a map renderer, Mapnik contains bitmap image utilities.
+* [jimp](https://www.npmjs.com/package/jimp) v0.16.0 - Image processing in pure JavaScript. Provides bicubic interpolation.
+* [mapnik](https://www.npmjs.org/package/mapnik) v4.5.2 - Whilst primarily a map renderer, Mapnik contains bitmap image utilities.
 * [imagemagick](https://www.npmjs.com/package/imagemagick) v0.1.3 - Supports filesystem only and "*has been unmaintained for a long time*".
 * [gm](https://www.npmjs.com/package/gm) v1.23.1 - Fully featured wrapper around GraphicsMagick's `gm` command line utility.
-* sharp v0.23.1 / libvips v8.8.1 - Caching within libvips disabled to ensure a fair comparison.
+* sharp v0.26.0 / libvips v8.10.0 - Caching within libvips disabled to ensure a fair comparison.
 
-### The task
+## The task
 
 Decompress a 2725x2225 JPEG image,
 resize to 720x588 using Lanczos 3 resampling (where available),
 then compress to JPEG at a "quality" setting of 80.
 
-### Results
+## Test environment
+
+* AWS EC2 eu-west-1 [c5d.large](https://aws.amazon.com/ec2/instance-types/c5/) (2x Xeon Platinum 8124M CPU @ 3.00GHz)
+* Ubuntu 20.04 (ami-0f1d11c92a9467c07)
+* Node.js v14.8.0
+
+## Results
 
 | Module             | Input  | Output | Ops/sec | Speed-up |
 | :----------------- | :----- | :----- | ------: | -------: |
-| jimp               | buffer | buffer |    0.66 |      1.0 |
-| mapnik             | buffer | buffer |    3.31 |      5.0 |
-| gm                 | buffer | buffer |    3.79 |      5.7 |
-| gm                 | file   | file   |    3.82 |      5.8 |
-| imagemagick        | file   | file   |    4.17 |      6.3 |
-| sharp              | stream | stream |   25.81 |     39.1 |
-| sharp              | file   | file   |   26.76 |     40.5 |
-| sharp              | buffer | buffer |   28.06 |     42.5 |
+| jimp               | buffer | buffer |    0.75 |      1.0 |
+| mapnik             | buffer | buffer |    3.00 |      4.0 |
+| gm                 | buffer | buffer |    4.12 |      5.5 |
+| gm                 | file   | file   |    4.13 |      5.5 |
+| imagemagick        | file   | file   |    4.30 |      5.7 |
+| sharp              | stream | stream |   22.37 |     29.8 |
+| sharp              | file   | file   |   23.40 |     31.2 |
+| sharp              | buffer | buffer |   24.01 |     32.0 |
 
 Greater libvips performance can be expected with caching enabled (default)
-and using 8+ core machines, especially those with larger L1/L2 CPU caches.
+and using 4+ core machines, especially those with larger L1/L2 CPU caches.
 
 The I/O limits of the relevant (de)compression library will generally determine maximum throughput.
 
-### Benchmark test prerequisites
+## Running the benchmark test
 
 Requires _ImageMagick_, _GraphicsMagick_ and _Mapnik_:
 
@@ -55,8 +57,6 @@ sudo apt-get install imagemagick libmagick++-dev graphicsmagick libmapnik-dev
 ```sh
 sudo yum install ImageMagick-devel ImageMagick-c++-devel GraphicsMagick mapnik-devel
 ```
-
-### Running the benchmark test
 
 ```sh
 git clone https://github.com/lovell/sharp.git

@@ -19,11 +19,17 @@ describe('failOnError', function () {
       });
   });
 
-  it('handles truncated PNG', function (done) {
+  it('handles truncated PNG, emits warnings', function (done) {
+    let isWarningEmitted = false;
     sharp(fixtures.inputPngTruncated, { failOnError: false })
+      .on('warning', function (warning) {
+        assert.ok(warning.includes('not enough data') || warning.includes('end of stream'));
+        isWarningEmitted = true;
+      })
       .resize(320, 240)
       .toBuffer(function (err, data, info) {
         if (err) throw err;
+        assert.strictEqual(true, isWarningEmitted);
         assert.strictEqual('png', info.format);
         assert.strictEqual(320, info.width);
         assert.strictEqual(240, info.height);
@@ -48,17 +54,17 @@ describe('failOnError', function () {
   it('returns errors to callback for truncated JPEG', function (done) {
     sharp(fixtures.inputJpgTruncated).toBuffer(function (err, data, info) {
       assert.ok(err.message.includes('VipsJpeg: Premature end of JPEG file'), err);
-      assert.strictEqual(data, null);
-      assert.strictEqual(info, null);
+      assert.strictEqual(data, undefined);
+      assert.strictEqual(info, undefined);
       done();
     });
   });
 
   it('returns errors to callback for truncated PNG', function (done) {
     sharp(fixtures.inputPngTruncated).toBuffer(function (err, data, info) {
-      assert.ok(err.message.includes('vipspng: libpng read error'), err);
-      assert.strictEqual(data, null);
-      assert.strictEqual(info, null);
+      assert.ok(err.message.includes('read error'), err);
+      assert.strictEqual(data, undefined);
+      assert.strictEqual(info, undefined);
       done();
     });
   });

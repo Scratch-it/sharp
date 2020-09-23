@@ -6,19 +6,21 @@ Resize image to `width`, `height` or `width x height`.
 
 When both a `width` and `height` are provided, the possible methods by which the image should **fit** these are:
 
--   `cover`: Crop to cover both provided dimensions (the default).
--   `contain`: Embed within both provided dimensions.
+-   `cover`: (default) Preserving aspect ratio, ensure the image covers both provided dimensions by cropping/clipping to fit.
+-   `contain`: Preserving aspect ratio, contain within both provided dimensions using "letterboxing" where necessary.
 -   `fill`: Ignore the aspect ratio of the input and stretch to both provided dimensions.
 -   `inside`: Preserving aspect ratio, resize the image to be as large as possible while ensuring its dimensions are less than or equal to both those specified.
 -   `outside`: Preserving aspect ratio, resize the image to be as small as possible while ensuring its dimensions are greater than or equal to both those specified.
-    Some of these values are based on the [object-fit][1] CSS property.
+
+Some of these values are based on the [object-fit][1] CSS property.
 
 When using a `fit` of `cover` or `contain`, the default **position** is `centre`. Other options are:
 
 -   `sharp.position`: `top`, `right top`, `right`, `right bottom`, `bottom`, `left bottom`, `left`, `left top`.
 -   `sharp.gravity`: `north`, `northeast`, `east`, `southeast`, `south`, `southwest`, `west`, `northwest`, `center` or `centre`.
 -   `sharp.strategy`: `cover` only, dynamically crop using either the `entropy` or `attention` strategy.
-    Some of these values are based on the [object-position][2] CSS property.
+
+Some of these values are based on the [object-position][2] CSS property.
 
 The experimental strategy-based approach resizes so one dimension is at its target length
 then repeatedly ranks edge regions, discarding the edge with the lowest score based on the selected strategy.
@@ -36,8 +38,8 @@ Possible interpolation kernels are:
 
 ### Parameters
 
--   `width` **[Number][8]?** pixels wide the resultant image should be. Use `null` or `undefined` to auto-scale the width to match the height.
--   `height` **[Number][8]?** pixels high the resultant image should be. Use `null` or `undefined` to auto-scale the height to match the width.
+-   `width` **[number][8]?** pixels wide the resultant image should be. Use `null` or `undefined` to auto-scale the width to match the height.
+-   `height` **[number][8]?** pixels high the resultant image should be. Use `null` or `undefined` to auto-scale the height to match the width.
 -   `options` **[Object][9]?** 
     -   `options.width` **[String][10]?** alternative means of specifying `width`. If both are present this take priority.
     -   `options.height` **[String][10]?** alternative means of specifying `height`. If both are present this take priority.
@@ -114,6 +116,15 @@ sharp(input)
   });
 ```
 
+```javascript
+const scaleByHalf = await sharp(input)
+  .metadata()
+  .then(({ width }) => sharp(input)
+    .resize(Math.round(width * 0.5))
+    .toBuffer()
+  );
+```
+
 -   Throws **[Error][13]** Invalid parameters
 
 Returns **Sharp** 
@@ -125,11 +136,11 @@ This operation will always occur after resizing and extraction, if any.
 
 ### Parameters
 
--   `extend` **([Number][8] \| [Object][9])** single pixel count to add to all edges or an Object with per-edge counts
-    -   `extend.top` **[Number][8]?** 
-    -   `extend.left` **[Number][8]?** 
-    -   `extend.bottom` **[Number][8]?** 
-    -   `extend.right` **[Number][8]?** 
+-   `extend` **([number][8] \| [Object][9])** single pixel count to add to all edges or an Object with per-edge counts
+    -   `extend.top` **[number][8]?** 
+    -   `extend.left` **[number][8]?** 
+    -   `extend.bottom` **[number][8]?** 
+    -   `extend.right` **[number][8]?** 
     -   `extend.background` **([String][10] \| [Object][9])** background colour, parsed by the [color][11] module, defaults to black without transparency. (optional, default `{r:0,g:0,b:0,alpha:1}`)
 
 ### Examples
@@ -155,7 +166,7 @@ Returns **Sharp**
 
 ## extract
 
-Extract a region of the image.
+Extract/crop a region of the image.
 
 -   Use `extract` before `resize` for pre-resize extraction.
 -   Use `extract` after `resize` for post-resize extraction.
@@ -164,10 +175,10 @@ Extract a region of the image.
 ### Parameters
 
 -   `options` **[Object][9]** describes the region to extract using integral pixel values
-    -   `options.left` **[Number][8]** zero-indexed offset from left edge
-    -   `options.top` **[Number][8]** zero-indexed offset from top edge
-    -   `options.width` **[Number][8]** width of region to extract
-    -   `options.height` **[Number][8]** height of region to extract
+    -   `options.left` **[number][8]** zero-indexed offset from left edge
+    -   `options.top` **[number][8]** zero-indexed offset from top edge
+    -   `options.width` **[number][8]** width of region to extract
+    -   `options.height` **[number][8]** height of region to extract
 
 ### Examples
 
@@ -202,7 +213,7 @@ The `info` response Object will contain `trimOffsetLeft` and `trimOffsetTop` pro
 
 ### Parameters
 
--   `threshold` **[Number][8]** the allowed difference from the top-left pixel, a number greater than zero. (optional, default `10`)
+-   `threshold` **[number][8]** the allowed difference from the top-left pixel, a number greater than zero. (optional, default `10`)
 
 
 -   Throws **[Error][13]** Invalid parameters
