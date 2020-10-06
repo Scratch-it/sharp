@@ -343,6 +343,7 @@ class PipelineWorker : public Napi::AsyncWorker {
       bool const shouldSharpen = baton->sharpenSigma != 0.0;
       bool const shouldApplyMedian = baton->medianSize > 0;
       bool const shouldComposite = !baton->composite.empty();
+      bool const shouldAnimate = !baton->animatedImage.empty();
       bool const shouldModulate = baton->brightness != 1.0 || baton->saturation != 1.0 || baton->hue != 0.0;
 
       if (shouldComposite && !sharp::HasAlpha(image)) {
@@ -595,6 +596,42 @@ class PipelineWorker : public Napi::AsyncWorker {
             ->set("x", left)
             ->set("y", top));
         }
+      }
+
+      // Animated Image
+      if (shouldAnimate)
+      {
+        std::vector<VImage> imageVector;
+        for (Composite *animated : baton->animatedImage)
+        {
+          VImage animatedFrame;
+          sharp::ImageType animatedFrameImageType = sharp::ImageType::UNKNOWN;
+          std::tie(animatedFrame, animatedFrameImageType) = OpenInput(animated->input);
+
+          // Ensure image to composite is sRGB with premultiplied alpha
+          animatedFrame = animatedFrame.colourspace(VIPS_INTERPRETATION_sRGB);
+          if (!sharp::HasAlpha(animatedFrame))
+          {
+            animatedFrame = sharp::EnsureAlpha(animatedFrame);
+          }
+  //TODO: check across parameter
+//   across : gint, number of images per row
+
+// shim : gint, space between images, in pixels
+
+// background : VipsArrayDouble, background ink colour
+
+// halign : VipsAlign, low, centre or high alignment
+
+// valign : VipsAlign, low, centre or high alignment
+
+// hspacing : gint, horizontal distance between images
+
+// vspacing : gint, vertical distance between images
+          // image = image.composite2(compositeImage, composite->mode, VImage::option()->set("premultiplied", TRUE)->set("x", left)->set("y", top));
+          imageVector.push_back(animatedFrame);
+        }
+        image = image.arrayjoin(imageVector, VImage::option()); // ->set("across", n images)->set("shim", space between images, pixels (0) )->set("background", background color(black)))
       }
 
       // Reverse premultiplication after all transformations:
@@ -1111,6 +1148,11 @@ class PipelineWorker : public Napi::AsyncWorker {
       delete composite->input;
       delete composite;
     }
+    for (Composite *animatedFrame : baton->animatedImage)
+    {
+      delete animatedFrame->input;
+      delete animatedFrame;
+    }
     for (sharp::InputDescriptor *input : baton->joinChannelIn) {
       delete input;
     }
@@ -1244,6 +1286,22 @@ Napi::Value pipeline(const Napi::CallbackInfo& info) {
     composite->tile = sharp::AttrAsBool(compositeObject, "tile");
     composite->premultiplied = sharp::AttrAsBool(compositeObject, "premultiplied");
     baton->composite.push_back(composite);
+  }
+  // Animated Join
+  Napi::Array joinArray = options.Get("animatedImage").As<Napi::Array>();
+  for (unsigned int i = 0; i < joinArray.Length(); i++)
+  {
+    Napi::Object animatedObject = joinArray.Get(i).As<Napi::Object>();
+    Composite *animatedFrame = new Composite;
+    animatedFrame->input = sharp::CreateInputDescriptor(animatedObject.Get("input").As<Napi::Object>());
+    // composite->mode = static_cast<VipsBlendMode>(
+    //     vips_enum_from_nick(nullptr, VIPS_TYPE_BLEND_MODE, sharp::AttrAsStr(animatedObject, "blend").data()));
+    // composite->gravity = sharp::AttrAsUint32(animatedObject, "gravity");
+    // composite->left = sharp::AttrAsInt32(animatedObject, "left");
+    // composite->top = sharp::AttrAsInt32(animatedObject, "top");
+    // composite->tile = sharp::AttrAsBool(animatedObject, "tile");
+    // composite->premultiplied = sharp::AttrAsBool(animatedObject, "premultiplied");
+    baton->animatedImage.push_back(animatedFrame);
   }
   // Resize options
   baton->withoutEnlargement = sharp::AttrAsBool(options, "withoutEnlargement");

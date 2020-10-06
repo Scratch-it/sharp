@@ -53,6 +53,44 @@ struct Composite {
     premultiplied(false) {}
 };
 
+/**
+ * * @across: %gint, number of images per row
+ * * @shim: %gint, space between images, in pixels
+ * * @background: #VipsArrayDouble, background ink colour
+ * * @halign: #VipsAlign, low, centre or high alignment
+ * * @valign: #VipsAlign, low, centre or high alignment
+ * * @hspacing: %gint, horizontal distance between images
+ * * @vspacing: %gint, vertical distance between images
+ */
+struct Join {
+  sharp::InputDescriptor *input;
+  int across;
+  // std::string background;
+  int shim;
+
+
+
+
+  // std::string halign; //'center'
+  // VipsBlendMode mode;
+  // int gravity;
+  // int left;
+  // int top;
+  // bool tile;
+  // bool premultiplied;
+
+  Join():
+    input(nullptr),
+    across(0),
+    shim(0) {}
+  // mode(VIPS_BLEND_MODE_OVER),
+  // gravity(0),
+  // left(-1),
+  // top(-1),
+  // tile(false),
+  // premultiplied(false) {}
+};
+
 struct PipelineBaton {
   sharp::InputDescriptor *input;
   std::string formatOut;
@@ -60,6 +98,7 @@ struct PipelineBaton {
   void *bufferOut;
   size_t bufferOutLength;
   std::vector<Composite *> composite;
+  std::vector<Composite *> animatedImage;
   std::vector<sharp::InputDescriptor *> joinChannelIn;
   int topOffsetPre;
   int leftOffsetPre;

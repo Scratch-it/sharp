@@ -25,7 +25,7 @@ const minimumGlibcVersionByArch = {
 const { minimumLibvipsVersion, minimumLibvipsVersionLabelled } = libvips;
 const distHost = process.env.npm_config_sharp_libvips_binary_host || 'https://github.com/lovell/sharp-libvips/releases/download';
 const distBaseUrl = process.env.npm_config_sharp_dist_base_url || process.env.SHARP_DIST_BASE_URL || `${distHost}/v${minimumLibvipsVersionLabelled}/`;
-
+// const path = '../../DynamicImage/dynamic/images/libvips-8.10.1-linux-x64.tar.gz'
 const fail = function (err) {
   npmLog.error('sharp', err.message);
   if (err.code === 'EACCES') {
@@ -44,6 +44,7 @@ const extractTarball = function (tarPath) {
   stream.pipeline(
     fs.createReadStream(tarPath),
     new zlib.BrotliDecompress(),
+    // new zlib.Gzip(),
     tarFs.extract(versionedVendorPath),
     function (err) {
       if (err) {
