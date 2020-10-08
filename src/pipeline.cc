@@ -610,28 +610,42 @@ class PipelineWorker : public Napi::AsyncWorker {
 
           // Ensure image to composite is sRGB with premultiplied alpha
           animatedFrame = animatedFrame.colourspace(VIPS_INTERPRETATION_sRGB);
+
+
           if (!sharp::HasAlpha(animatedFrame))
           {
             animatedFrame = sharp::EnsureAlpha(animatedFrame);
           }
-  //TODO: check across parameter
-//   across : gint, number of images per row
 
-// shim : gint, space between images, in pixels
 
-// background : VipsArrayDouble, background ink colour
+            // shim : gint, space between images, in pixels
 
-// halign : VipsAlign, low, centre or high alignment
+            // background : VipsArrayDouble, background ink colour
 
-// valign : VipsAlign, low, centre or high alignment
+            // halign : VipsAlign, low, centre or high alignment
 
-// hspacing : gint, horizontal distance between images
+            // valign : VipsAlign, low, centre or high alignment
 
-// vspacing : gint, vertical distance between images
-          // image = image.composite2(compositeImage, composite->mode, VImage::option()->set("premultiplied", TRUE)->set("x", left)->set("y", top));
-          imageVector.push_back(animatedFrame);
+            // hspacing : gint, horizontal distance between images
+
+            // vspacing : gint, vertical distance between images
+            // image = image.composite2(compositeImage, composite->mode, VImage::option()->set("premultiplied", TRUE)->set("x", left)->set("y", top));
+            imageVector.push_back(animatedFrame);
         }
-        image = image.arrayjoin(imageVector, VImage::option()); // ->set("across", n images)->set("shim", space between images, pixels (0) )->set("background", background color(black)))
+        int across = 0;
+        int shim = 0;
+        if (baton->across)
+        {
+          across = baton->across;
+          //TODO: check across parameter
+          //   across : gint, number of images per row
+        }
+        if (baton->shim)
+        {
+          shim = baton->shim;
+        }
+        // std::vector<double> animatedBackground = baton->animatedBackground;
+        image = image.arrayjoin(imageVector, VImage::option()->set("across", across)->set("shim", shim)); //->set("background", animatedBackground)); // ->set("across", n images)->set("shim", space between images, pixels (0) )->set("background", background color(black)))
       }
 
       // Reverse premultiplication after all transformations:
@@ -1303,6 +1317,8 @@ Napi::Value pipeline(const Napi::CallbackInfo& info) {
     // composite->premultiplied = sharp::AttrAsBool(animatedObject, "premultiplied");
     baton->animatedImage.push_back(animatedFrame);
   }
+  // baton->animatedBackground = sharp::AttrAsRgba(options, "animatedBackground");
+
   // Resize options
   baton->withoutEnlargement = sharp::AttrAsBool(options, "withoutEnlargement");
   baton->position = sharp::AttrAsInt32(options, "position");

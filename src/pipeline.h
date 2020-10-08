@@ -99,7 +99,10 @@ struct PipelineBaton {
   size_t bufferOutLength;
   std::vector<Composite *> composite;
   std::vector<Composite *> animatedImage;
+  std::vector<double> animatedBackground;
   std::vector<sharp::InputDescriptor *> joinChannelIn;
+  int across;
+  int shim;
   int topOffsetPre;
   int leftOffsetPre;
   int widthPre;
@@ -224,6 +227,9 @@ struct PipelineBaton {
   PipelineBaton():
     input(nullptr),
     bufferOutLength(0),
+    animatedBackground{ 0.0, 0.0, 0.0, 0.0 },
+    across(1),
+    shim(0),
     topOffsetPre(-1),
     topOffsetPost(-1),
     channels(0),
