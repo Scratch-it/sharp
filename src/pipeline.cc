@@ -611,26 +611,27 @@ class PipelineWorker : public Napi::AsyncWorker {
           // Ensure image to composite is sRGB with premultiplied alpha
           animatedFrame = animatedFrame.colourspace(VIPS_INTERPRETATION_sRGB);
 
+          // if (!sharp::HasAlpha(animatedFrame))
+          // {
+          //   animatedFrame = sharp::EnsureAlpha(animatedFrame);
+          // }
 
-          if (!sharp::HasAlpha(animatedFrame))
-          {
-            animatedFrame = sharp::EnsureAlpha(animatedFrame);
-          }
+          // if (!animated->premultiplied)
+          //   animatedFrame = animatedFrame.premultiply();
 
+          // shim : gint, space between images, in pixels
 
-            // shim : gint, space between images, in pixels
+          // background : VipsArrayDouble, background ink colour
 
-            // background : VipsArrayDouble, background ink colour
+          // halign : VipsAlign, low, centre or high alignment
 
-            // halign : VipsAlign, low, centre or high alignment
+          // valign : VipsAlign, low, centre or high alignment
 
-            // valign : VipsAlign, low, centre or high alignment
+          // hspacing : gint, horizontal distance between images
 
-            // hspacing : gint, horizontal distance between images
-
-            // vspacing : gint, vertical distance between images
-            // image = image.composite2(compositeImage, composite->mode, VImage::option()->set("premultiplied", TRUE)->set("x", left)->set("y", top));
-            imageVector.push_back(animatedFrame);
+          // vspacing : gint, vertical distance between images
+          // image = image.composite2(compositeImage, composite->mode, VImage::option()->set("premultiplied", TRUE)->set("x", left)->set("y", top));
+          imageVector.push_back(animatedFrame);
         }
         int across = 0;
         int shim = 0;
@@ -644,8 +645,16 @@ class PipelineWorker : public Napi::AsyncWorker {
         {
           shim = baton->shim;
         }
-        // std::vector<double> animatedBackground = baton->animatedBackground;
-        image = image.arrayjoin(imageVector, VImage::option()->set("across", across)->set("shim", shim)); //->set("background", animatedBackground)); // ->set("across", n images)->set("shim", space between images, pixels (0) )->set("background", background color(black)))
+        // image = sharp::EnsureAlpha(image);
+        // if (!sharp::HasAlpha(image))
+        // {
+        //   image = sharp::EnsureAlpha(image);
+        // }
+        std::vector<double> animatedBackground = baton->animatedBackground;
+        // VIPS_AREA
+        // std::vector<double> background;
+        std::tie(image, animatedBackground) = sharp::ApplyAlpha(image, baton->animatedBackground);
+        image = image.arrayjoin(imageVector, VImage::option()->set("across", across)->set("shim", shim)->set("background", animatedBackground)); // ->set("across", n images)->set("shim", space between images, pixels (0) )->set("background", background color(black)))
       }
 
       // Reverse premultiplication after all transformations:
@@ -833,8 +842,9 @@ class PipelineWorker : public Napi::AsyncWorker {
           sharp::AssertImageTypeDimensions(image, sharp::ImageType::GIF);
           VipsArea *area = VIPS_AREA(image.magicksave_buffer(VImage::option()
             ->set("strip", !baton->withMetadata)
-            ->set("optimize_gif_frames", TRUE)
-            ->set("optimize_gif_transparency", TRUE)
+            ->set("optimize_gif_frames", baton->optimizeGif)
+            ->set("optimize_gif_transparency", baton->optimizeGif)
+            ->set("background", baton->animatedBackground)
             ->set("format", "gif")));
           baton->bufferOut = static_cast<char*>(area->data);
           baton->bufferOutLength = area->length;
@@ -978,8 +988,9 @@ class PipelineWorker : public Napi::AsyncWorker {
           sharp::AssertImageTypeDimensions(image, sharp::ImageType::GIF);
           image.magicksave(const_cast<char*>(baton->fileOut.data()), VImage::option()
             ->set("strip", !baton->withMetadata)
-            ->set("optimize_gif_frames", TRUE)
-            ->set("optimize_gif_transparency", TRUE)
+            ->set("optimize_gif_frames", baton->optimizeGif)
+            ->set("optimize_gif_transparency", baton->optimizeGif)
+            ->set("background", baton->animatedBackground)
             ->set("format", "gif"));
           baton->formatOut = "gif";
         } else if (baton->formatOut == "tiff" || (mightMatchInput && isTiff) ||
@@ -1314,7 +1325,7 @@ Napi::Value pipeline(const Napi::CallbackInfo& info) {
     // composite->left = sharp::AttrAsInt32(animatedObject, "left");
     // composite->top = sharp::AttrAsInt32(animatedObject, "top");
     // composite->tile = sharp::AttrAsBool(animatedObject, "tile");
-    // composite->premultiplied = sharp::AttrAsBool(animatedObject, "premultiplied");
+    // animatedFrame->premultiplied = sharp::AttrAsBool(animatedObject, "premultiplied");
     baton->animatedImage.push_back(animatedFrame);
   }
   // baton->animatedBackground = sharp::AttrAsRgba(options, "animatedBackground");
@@ -1408,6 +1419,7 @@ Napi::Value pipeline(const Napi::CallbackInfo& info) {
   baton->withMetadataOrientation = sharp::AttrAsUint32(options, "withMetadataOrientation");
   baton->withMetadataIcc = sharp::AttrAsStr(options, "withMetadataIcc");
   // Format-specific
+  baton->optimizeGif = sharp::AttrAsBool(options, "optimizeGif");
   baton->jpegQuality = sharp::AttrAsUint32(options, "jpegQuality");
   baton->jpegProgressive = sharp::AttrAsBool(options, "jpegProgressive");
   baton->jpegChromaSubsampling = sharp::AttrAsStr(options, "jpegChromaSubsampling");
