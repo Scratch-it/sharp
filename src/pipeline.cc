@@ -654,7 +654,7 @@ class PipelineWorker : public Napi::AsyncWorker {
         // VIPS_AREA
         // std::vector<double> background;
         // std::tie(image, animatedBackground) = sharp::ApplyAlpha(image, baton->animatedBackground);
-        image = image.arrayjoin(imageVector, VImage::option()->set("across", across)->set("shim", shim); //->set("background", animatedBackground)); // ->set("across", n images)->set("shim", space between images, pixels (0) )->set("background", background color(black)))
+        image = image.arrayjoin(imageVector, VImage::option()->set("across", across)->set("shim", shim)); //->set("background", animatedBackground)); // ->set("across", n images)->set("shim", space between images, pixels (0) )->set("background", background color(black)))
       }
 
       // Reverse premultiplication after all transformations:
