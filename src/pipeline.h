@@ -276,7 +276,7 @@ struct PipelineBaton {
     extendRight(0),
     extendBackground{ 0.0, 0.0, 0.0, 255.0 },
     withoutEnlargement(false),
-    optimizeGif(false),
+    optimizeGif(true),
     jpegQuality(80),
     jpegProgressive(false),
     jpegChromaSubsampling("4:2:0"),
