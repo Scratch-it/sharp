@@ -650,11 +650,11 @@ class PipelineWorker : public Napi::AsyncWorker {
         // {
         //   image = sharp::EnsureAlpha(image);
         // }
-        std::vector<double> animatedBackground = baton->animatedBackground;
+        // std::vector<double> animatedBackground = baton->animatedBackground;
         // VIPS_AREA
         // std::vector<double> background;
-        std::tie(image, animatedBackground) = sharp::ApplyAlpha(image, baton->animatedBackground);
-        image = image.arrayjoin(imageVector, VImage::option()->set("across", across)->set("shim", shim)->set("background", animatedBackground)); // ->set("across", n images)->set("shim", space between images, pixels (0) )->set("background", background color(black)))
+        // std::tie(image, animatedBackground) = sharp::ApplyAlpha(image, baton->animatedBackground);
+        image = image.arrayjoin(imageVector, VImage::option()->set("across", across)->set("shim", shim); //->set("background", animatedBackground)); // ->set("across", n images)->set("shim", space between images, pixels (0) )->set("background", background color(black)))
       }
 
       // Reverse premultiplication after all transformations:
@@ -842,8 +842,10 @@ class PipelineWorker : public Napi::AsyncWorker {
           sharp::AssertImageTypeDimensions(image, sharp::ImageType::GIF);
           VipsArea *area = VIPS_AREA(image.magicksave_buffer(VImage::option()
             ->set("strip", !baton->withMetadata)
-            ->set("optimize_gif_frames", baton->optimizeGif)
-            ->set("optimize_gif_transparency", baton->optimizeGif)
+            ->set("optimize_gif_frames", FALSE)
+            ->set("optimize_gif_transparency", FALSE)
+            // ->set("optimize_gif_frames", baton->optimizeGif)
+            // ->set("optimize_gif_transparency", baton->optimizeGif)
             ->set("background", baton->animatedBackground)
             ->set("format", "gif")));
           baton->bufferOut = static_cast<char*>(area->data);
@@ -988,9 +990,11 @@ class PipelineWorker : public Napi::AsyncWorker {
           sharp::AssertImageTypeDimensions(image, sharp::ImageType::GIF);
           image.magicksave(const_cast<char*>(baton->fileOut.data()), VImage::option()
             ->set("strip", !baton->withMetadata)
-            ->set("optimize_gif_frames", baton->optimizeGif)
-            ->set("optimize_gif_transparency", baton->optimizeGif)
-            ->set("background", baton->animatedBackground)
+            ->set("optimize_gif_frames", FALSE)
+            ->set("optimize_gif_transparency", FALSE)
+            // ->set("optimize_gif_frames", baton->optimizeGif)
+            // ->set("optimize_gif_transparency", baton->optimizeGif)
+            // ->set("background", baton->animatedBackground)
             ->set("format", "gif"));
           baton->formatOut = "gif";
         } else if (baton->formatOut == "tiff" || (mightMatchInput && isTiff) ||
